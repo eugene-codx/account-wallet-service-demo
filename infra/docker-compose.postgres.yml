@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: shared_postgres
+    restart: always
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    volumes:
+      - shared_pg_data:/var/lib/postgresql/data
+    networks:
+      - microservices_net
+
+volumes:
+  shared_pg_data:
+
+networks:
+  microservices_net:
+    name: microservices_net

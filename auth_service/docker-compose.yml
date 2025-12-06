@@ -1,0 +1,27 @@
+services:
+  api:
+    build: .
+    container_name: auth_api
+    restart: always
+    env_file: .env
+    networks:
+      - microservices_net
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+    command: >
+      sh -c "
+      until pg_isready -h ${POSTGRES_HOST} -p ${POSTGRES_PORT}; do
+        echo 'Waiting for PostgreSQL...';
+        sleep 1;
+      done;
+      alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port ${UVICORN_PORT}
+      "
+    ports:
+      - "${UVICORN_PORT}:${UVICORN_PORT}"
+
+networks:
+  microservices_net:
+    external: true
