@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from auth_service.app.core.security import create_access_token
-from auth_service.app.services.user_service import authenticate_user
+from app.core.security import create_access_token
+from app.services.user_service import authenticate_user
 
 
 def login(db: Session, username: str, password: str):

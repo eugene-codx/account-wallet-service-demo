@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    UVICORN_PORT: str = "8001"
+
     class Config:
         base_dir = Path(__file__).resolve().parents[2]
         env_file = str(base_dir / ".env")

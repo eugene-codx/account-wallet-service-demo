@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from auth_service.app.api.v1 import auth, users
-from auth_service.app.core.config import settings
+from app.api.v1 import auth, users
+from app.core.config import settings
 
 app = FastAPI(title=settings.PROJECT_NAME)
 

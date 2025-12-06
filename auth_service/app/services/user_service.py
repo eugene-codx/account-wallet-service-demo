@@ -2,8 +2,8 @@ import bcrypt
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from auth_service.app.models.user import User
-from auth_service.app.schemas.user import UserCreate
+from app.models.user import User
+from app.schemas.user import UserCreate
 
 
 def create_user(db: Session, user: UserCreate):
