@@ -136,7 +136,7 @@ celerybeat.pid
 
 # Environments
 auth_service/.env*
-#infra/.env*
+infra/.env*
 wallet_service/.env*
 .envrc
 .venv
