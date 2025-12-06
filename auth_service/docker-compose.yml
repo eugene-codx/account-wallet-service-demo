@@ -6,8 +6,6 @@ services:
     env_file: .env
     networks:
       - microservices_net
-    depends_on:
-      - postgres
     environment:
       POSTGRES_HOST: postgres
     command: >
