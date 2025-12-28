@@ -7,6 +7,12 @@ from app.schemas.user import UserCreate
 
 
 def create_user(db: Session, user: UserCreate):
+    from fastapi import HTTPException
+
+    existing = db.query(User).filter(User.username == user.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
+
     password_bytes = user.password.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
