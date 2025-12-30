@@ -1,0 +1,28 @@
+# Логи и временные файлы
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.tmp
+
+# Зависимости
+node_modules/
+jspm_packages/
+bower_components/
+
+# Скрытые файлы и папки
+.git
+.gitignore
+.env
+.env.local
+.vscode
+.idea
+
+# Результаты сборки
+dist/
+build/
+coverage/
+
+# Docker
+Dockerfile
+.dockerignore

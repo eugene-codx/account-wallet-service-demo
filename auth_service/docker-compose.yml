@@ -8,6 +8,8 @@ services:
       - microservices_net
     environment:
       POSTGRES_HOST: postgres
+    # Используем 'uv run' для гарантии запуска в правильном контексте, 
+    # хотя PATH уже настроен в Dockerfile
     command: >
       sh -c "
       export PGPASSWORD=${POSTGRES_PASSWORD};
@@ -16,9 +18,9 @@ services:
         sleep 1;
       done;
       psql -h ${POSTGRES_HOST} -U ${POSTGRES_USER} -tc \"SELECT 1 FROM pg_database WHERE datname='${POSTGRES_DB}'\" | grep -q 1 || psql -h ${POSTGRES_HOST} -U ${POSTGRES_USER} -c \"CREATE DATABASE ${POSTGRES_DB}\";
-      psql -h ${POSTGRES_HOST} -U ${POSTGRES_USER} -tc \"SELECT 1 FROM pg_database WHERE datname='${POSTGRES_DB}'\" | grep -q 1 || psql -h ${POSTGRES_HOST} -U ${POSTGRES_USER} -c \"CREATE DATABASE ${POSTGRES_DB}\";
-      alembic upgrade head &&
-      uvicorn app.main:app --host 0.0.0.0 --port ${UVICORN_PORT}
+      
+      uv run alembic upgrade head &&
+      uv run uvicorn app.main:app --host 0.0.0.0 --port ${UVICORN_PORT}
       "
     ports:
       - "${UVICORN_PORT}:${UVICORN_PORT}"
