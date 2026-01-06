@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "auth_service FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8002",
+                "--reload"
+            ],
+            "cwd": "${workspaceFolder:auth_service}",
+            "python": "${workspaceFolder:auth_service}/.venv/bin/python",
+            "jinja": true,
+            "justMyCode": true
+        },
+        {
+            "name": "wallet_service FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8001",
+                "--reload"
+            ],
+            "cwd": "${workspaceFolder:wallet_service}",
+            "python": "${workspaceFolder:wallet_service}/.venv/bin/python",
+            "jinja": true,
+            "justMyCode": true
+        }
+    ]
+}

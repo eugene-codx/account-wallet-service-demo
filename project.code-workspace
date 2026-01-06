@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{ "path": "auth_service" },
+    	{ "path": "wallet_service" },
+		{ "path": "infra"},
+		{ "path": "." }
+	],
+	"settings": {
+		"python.terminal.activateEnvironment": true,
+		"python.defaultInterpreterPath": ".venv/bin/python"
+	}
+}
