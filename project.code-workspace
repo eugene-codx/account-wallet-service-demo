@@ -4,7 +4,6 @@
     	{ "path": "wallet_service" }
 	],
 	"settings": {
-		"python.terminal.activateEnvironment": true,
-		"python.defaultInterpreterPath": ".venv/bin/python"
+		"python.terminal.activateEnvironment": true
 	}
 }
