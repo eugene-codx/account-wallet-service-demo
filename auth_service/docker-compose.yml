@@ -8,8 +8,6 @@ services:
       - microservices_net
     environment:
       POSTGRES_HOST: postgres
-    # Используем 'uv run' для гарантии запуска в правильном контексте, 
-    # хотя PATH уже настроен в Dockerfile
     command: >
       sh -c "
       export PGPASSWORD=${POSTGRES_PASSWORD};

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "wallet_db"
 
     JWT_SECRET: str = "your_jwt_secret_key"
+    JWT_ALGORITHM: str = "HS256"
 
     UVICORN_PORT: str = "8002"
 
