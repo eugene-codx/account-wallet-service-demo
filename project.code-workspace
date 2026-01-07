@@ -1,7 +1,8 @@
 {
 	"folders": [
-		{ "path": "auth_service" },
-    	{ "path": "wallet_service" }
+	    { "path": "auth_service" },
+	    { "path": "wallet_service" },
+	    { "path": "." }
 	],
 	"settings": {
 		"python.terminal.activateEnvironment": true
