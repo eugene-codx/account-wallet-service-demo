@@ -67,14 +67,14 @@ async def deposit_funds(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    # Проверка идемпотентности
+    # Idempotency check
     check_tx = await db.execute(
         select(Transaction).where(Transaction.idempotency_key == req.idempotency_key)
     )
     if check_tx.scalars().first():
         raise HTTPException(status_code=409, detail="Transaction already processed")
 
-    # Используем блокировку FOR UPDATE для атомарности
+    # Use FOR UPDATE to lock the account row
     res = await db.execute(
         select(Account).where(Account.id == req.account_id).with_for_update()
     )
@@ -93,7 +93,7 @@ async def deposit_funds(
         )
     )
 
-    await db.commit()  # Явный коммит транзакции сессии
+    await db.commit()
     await db.refresh(account)
     return {"status": "success", "new_balance": account.balance}
 
@@ -110,7 +110,7 @@ async def transfer_funds(
     if check_tx.scalars().first():
         raise HTTPException(status_code=409, detail="Transaction already processed")
 
-    # Блокируем аккаунты в определенном порядке для избежания Deadlock
+    # Block both accounts in a consistent order to prevent deadlocks
     ids = sorted([req.from_account_id, req.to_account_id])
     res = await db.execute(select(Account).where(Account.id.in_(ids)).with_for_update())
     accounts = {str(a.id): a for a in res.scalars().all()}
@@ -160,16 +160,16 @@ async def withdraw_funds(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Списание средств со счета.
+    Withdraw funds from a user's account with idempotency check and row locking.
     """
-    # 1. Проверка идемпотентности
+    # 1. Check for idempotency
     check_tx = await db.execute(
         select(Transaction).where(Transaction.idempotency_key == req.idempotency_key)
     )
     if check_tx.scalars().first():
         raise HTTPException(status_code=409, detail="Transaction already processed")
 
-    # 2. Блокировка и списание
+    # 2. Block the account row and withdraw funds
     res = await db.execute(
         select(Account).where(Account.id == req.account_id).with_for_update()
     )
@@ -206,9 +206,9 @@ async def get_transaction_history(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Получение истории транзакций по конкретному счету с пагинацией.
+    Getting transaction history for a specific account with pagination.
     """
-    # Сначала проверяем, принадлежит ли счет пользователю
+    # First, verify that the account belongs to the user
     acc_check = await db.execute(
         select(Account).where(
             Account.id == account_id, Account.user_id == uuid.UUID(user_id)
@@ -217,7 +217,7 @@ async def get_transaction_history(
     if not acc_check.scalars().first():
         raise HTTPException(status_code=403, detail="Access denied to this account")
 
-    # Запрашиваем транзакции с сортировкой по дате (свежие сверху)
+    # Request transaction history with pagination, ordered by most recent first
     result = await db.execute(
         select(Transaction)
         .where(Transaction.account_id == account_id)
