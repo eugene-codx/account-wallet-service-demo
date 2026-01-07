@@ -1,34 +1,37 @@
 import bcrypt
-from sqlalchemy import and_
-from sqlalchemy.orm import Session
-
 from app.models.user import User
 from app.schemas.user import UserCreate
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def create_user(db: Session, user: UserCreate):
+async def create_user(db: AsyncSession, user: UserCreate):
     from fastapi import HTTPException
 
-    existing = db.query(User).filter(User.username == user.username).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
+    existing = await db.execute(select(User).where(User.username == user.username))
+    if existing.scalars().first():
+        raise HTTPException(
+            status_code=400, detail="User with this username already exists"
+        )
 
-    password_bytes = user.password.encode('utf-8')[:72]
+    password_bytes = user.password.encode("utf-8")[:72]
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+    hashed = bcrypt.hashpw(password_bytes, salt).decode("utf-8")
 
     db_user = User(username=user.username, hashed_password=hashed)
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
 
-def authenticate_user(db: Session, username: str, password: str):
-    user = (db
-            .query(User)
-            .filter(and_(User.username == username))
-            .first())
+async def authenticate_user(db: AsyncSession, username: str, password: str):
+    user = (
+        (await db.execute(select(User).where(User.username == username)))
+        .scalars()
+        .first()
+    )
+
     if not user:
         return None
 
@@ -36,6 +39,7 @@ def authenticate_user(db: Session, username: str, password: str):
         return None
     return user
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    password_bytes = plain_password.encode('utf-8')[:72]
-    return bcrypt.checkpw(password_bytes, hashed_password.encode('utf-8'))
+    password_bytes = plain_password.encode("utf-8")[:72]
+    return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))

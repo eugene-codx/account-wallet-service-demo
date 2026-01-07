@@ -19,7 +19,7 @@ from pydantic import UUID4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(prefix="/wallet", tags=["wallet"])
 
 security = HTTPBearer()
 

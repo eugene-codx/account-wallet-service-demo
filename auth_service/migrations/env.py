@@ -15,6 +15,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+if database_url and database_url.startswith("postgresql+asyncpg"):
+    database_url = database_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
+    
 config.set_main_option("sqlalchemy.url", database_url)
 
 # add your model's MetaData object here

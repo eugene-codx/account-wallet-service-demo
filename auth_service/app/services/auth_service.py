@@ -1,10 +1,10 @@
-from sqlalchemy.orm import Session
 from app.core.security import create_access_token
 from app.services.user_service import authenticate_user
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def login(db: Session, username: str, password: str):
-    user = authenticate_user(db, username, password)
+async def login(db: AsyncSession, username: str, password: str):
+    user = await authenticate_user(db, username, password)
     if not user:
         return None
 
