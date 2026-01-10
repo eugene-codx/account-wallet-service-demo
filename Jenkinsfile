@@ -2,10 +2,10 @@ pipeline {
     agent { label 'agent1' } 
 
     parameters {
-        choice(name: 'SERVICE_TO_RUN', choices: ['AUTO', 'auth_service', 'wallet_service', 'ALL'], description: 'Что собираем и деплоим?')
+        choice(name: 'SERVICE_TO_RUN', choices: ['AUTO', 'auth_service', 'wallet_service', 'ALL'], description: 'Что деплоим?')
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Ветка для сборки')
-        booleanParam(name: 'RUN_QA_TESTS', defaultValue: true, description: 'Запустить QA тесты (Habit_AT)')
-        booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Деплой на PROD (после DEV и тестов)')
+        booleanParam(name: 'RUN_QA_TESTS', defaultValue: true, description: 'Запустить QA тесты')
+        booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Деплой на PROD')
     }
 
     environment {
@@ -23,7 +23,6 @@ pipeline {
         stage('Initialize') {
             steps {
                 script {
-                    // Используем env.REPO_URL, так как переменная уже проинициализирована в блоке environment
                     checkout scm: ([$class: 'GitSCM', 
                         branches: [[name: "${params.BRANCH_NAME}"]], 
                         userRemoteConfigs: [[
@@ -59,7 +58,16 @@ pipeline {
             }
         }
 
-        stage('Build & Deploy DEV') {
+        stage('Deploy Infrastructure') {
+            when { expression { env.TARGET_SERVICES != "" } }
+            steps {
+                script {
+                    deployInfra("DEV")
+                }
+            }
+        }
+
+        stage('Build & Deploy DEV Services') {
             when { expression { env.TARGET_SERVICES != "" } }
             steps {
                 script {
@@ -92,6 +100,7 @@ pipeline {
             }
             steps {
                 script {
+                    deployInfra("PROD")
                     for (service in env.TARGET_SERVICES.split()) {
                         deployService(service, "PROD")
                     }
@@ -101,41 +110,51 @@ pipeline {
     }
 }
 
-// --- Вспомогательные функции (Best Practices) ---
-
 def isFolderChanged(folder) {
-    // Проверяем изменения в папке конкретного сервиса ИЛИ в папке common (если она есть)
-    def change = sh(script: "git diff --name-only HEAD~1 HEAD | grep -E '^(${folder}/|common/)' || true", returnStdout: true).trim()
+    def change = sh(script: "git diff --name-only HEAD~1 HEAD | grep -E '^(${folder}/|common/|infra/)' || true", returnStdout: true).trim()
     return change != ""
+}
+
+def deployInfra(envType) {
+    def remoteDir = (envType == "DEV") ? env.REMOTE_DIR_DEV : env.REMOTE_DIR_PROD
+    echo ">>> Checking Shared Infrastructure (${envType})..."
+
+    withCredentials([
+        sshUserPrivateKey(credentialsId: 'PSUSERDEPLOY_SSH', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
+    ]) {
+        sh """
+            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "sudo mkdir -p ${remoteDir}/infra"
+            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml infra/.env "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
+            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
+                cd ${remoteDir}/infra
+                docker compose up -d
+            "
+        """
+    }
 }
 
 def deployService(serviceName, envType) {
     def remoteDir = (envType == "DEV") ? env.REMOTE_DIR_DEV : env.REMOTE_DIR_PROD
-    // Динамически выбираем ID секрета для .env файла. 
     def envCredId = (envType == "DEV") ? "ENV_DEV_${serviceName}" : "ENV_PROD_${serviceName}"
     def imageTag = "${env.DOCKER_REGISTRY}/${env.DOCKER_ORG}/${serviceName}:latest"
 
-    echo ">>> Начинаем процесс для: ${serviceName} (Окружение: ${envType})"
+    echo ">>> Deploying Service: ${serviceName} to ${envType}"
 
     withCredentials([
         file(credentialsId: envCredId, variable: 'SECRET_ENV_FILE'),
         sshUserPrivateKey(credentialsId: 'PSUSERDEPLOY_SSH', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
         usernamePassword(credentialsId: 'GITHUB_TOKEN_CREDENTIALS', usernameVariable: 'G_USER', passwordVariable: 'G_TOKEN')
     ]) {
-        // Сборка Docker-образа (dir переключает контекст в папку микросервиса)
         dir(serviceName) {
             sh "docker build -t ${imageTag} ."
         }
-        
         sh "echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin"
         sh "docker push ${imageTag}"
 
-        // Удаленный деплой через SSH
         sh """
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "sudo mkdir -p ${remoteDir}/${serviceName}"
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SECRET_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/.env"
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" ./${serviceName}/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/"
-            
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/${serviceName}
                 echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin
