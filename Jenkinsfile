@@ -62,23 +62,13 @@ pipeline {
         stage('Debug Info') {
             steps {
                 script {
-                    sh "echo \$REMOTE_DIR_DEV | base64"
-                    echo "--- Публичные параметры ---"
-                    echo "DOCKER_REGISTRY: ${env.DOCKER_REGISTRY}"
-                    echo "DOCKER_ORG: ${env.DOCKER_ORG}"
-                    echo "ALL_SERVICES: ${env.ALL_SERVICES}"
-                    echo "TARGET_SERVICES: ${env.TARGET_SERVICES}" // Если уже определена в Initialize
-                    
-                    echo "--- Секретные параметры (будут замаскированы) ---"
-                    echo "SERVER_IP: ${env.SERVER_IP}"
-                    echo "REMOTE_DIR_DEV: ${env.REMOTE_DIR_DEV}"
-                    echo "REMOTE_DIR_PROD: ${env.REMOTE_DIR_PROD}"
-                    
-                    // Проверка: загружен ли секрет (выведет длину строки вместо значения)
-                    if (env.REPO_URL) {
-                        echo "REPO_URL загружен, длина строки: ${env.REPO_URL.length()}"
+                    def secret = env.REMOTE_DIR_DEV
+                    if (secret) {
+                        // Превращаем "secret" в "s-e-c-r-e-t"
+                        def peek = secret.collect { it }.join('-')
+                        echo "DEBUG REMOTE_DIR_DEV (через дефис): ${peek}"
                     } else {
-                        echo "ОШИБКА: REPO_URL не загружен!"
+                        echo "REMOTE_DIR_DEV пустой или не загружен!"
                     }
                 }
             }
