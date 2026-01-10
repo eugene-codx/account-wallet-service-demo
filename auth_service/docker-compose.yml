@@ -10,7 +10,7 @@ services:
     command: >
       sh -c "
       export PGPASSWORD=${POSTGRES_PASSWORD};
-      until pg_isready -h ${POSTGRES_HOST} -p ${POSTGRES_PORT}; do
+      until pg_isready -h ${POSTGRES_HOST} -p ${POSTGRES_PORT} -U ${POSTGRES_USER}; do
         echo 'Waiting for PostgreSQL...';
         sleep 1;
       done;
