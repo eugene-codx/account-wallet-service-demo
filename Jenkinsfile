@@ -9,11 +9,12 @@ pipeline {
     }
 
     environment {
+        APP_NAME = "Account_wallet_service"
         // Привязываем секреты к переменным окружения
         REPO_URL = credentials('REPO_URL_ACCOUNT_WALLET_SERVICE') 
         SERVER_IP = credentials('SERVER_IP')
-        REMOTE_DIR_DEV = credentials('REMOTE_DIR_DEV_Account_wallet_service')
-        REMOTE_DIR_PROD = credentials('REMOTE_DIR_PROD_Account_wallet_service')
+        REMOTE_DIR_DEV = credentials('REMOTE_DIR_DEV_' + APP_NAME)
+        REMOTE_DIR_PROD = credentials('REMOTE_DIR_PROD_' + APP_NAME)
         DOCKER_REGISTRY = "ghcr.io"
         DOCKER_ORG = "eugene-codx"
         ALL_SERVICES = "auth_service wallet_service"
@@ -135,7 +136,7 @@ def deployInfra(envType) {
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/infra
-                docker compose up -d
+                docker compose up -d -p ${APP_NAME}_infra_${envType.toLowerCase()}
             "
         """
     }
@@ -170,9 +171,9 @@ def deployService(serviceName, envType) {
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/${serviceName}
                 echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin
-                docker compose down --volumes --remove-orphans --timeout 120 || true
+                docker compose down -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()} --volumes --remove-orphans --timeout 120 || true
                 docker pull ${imageTag}
-                docker compose up -d
+                docker compose up -d -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()}
             "
         """
     }
