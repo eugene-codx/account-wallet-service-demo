@@ -9,7 +9,7 @@ pipeline {
     }
 
     environment {
-        APP_NAME = "Account_wallet_service"
+        APP_NAME = "account_wallet_service"
         // Привязываем секреты к переменным окружения
         REPO_URL = credentials('REPO_URL_ACCOUNT_WALLET_SERVICE') 
         SERVER_IP = credentials('SERVER_IP')
