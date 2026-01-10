@@ -9,7 +9,7 @@ pipeline {
     }
 
     environment {
-        APP_NAME = "account_wallet_service"
+        APP_NAME = "Account_wallet_service"
         // Привязываем секреты к переменным окружения
         REPO_URL = credentials('REPO_URL_ACCOUNT_WALLET_SERVICE') 
         SERVER_IP = credentials('SERVER_IP')
@@ -136,7 +136,7 @@ def deployInfra(envType) {
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/infra
-                docker compose -p ${APP_NAME}_infra_${envType.toLowerCase()} up -d
+                docker compose -p ${APP_NAME.toLowerCase()}_infra_${envType.toLowerCase()} up -d
             "
         """
     }
@@ -171,9 +171,9 @@ def deployService(serviceName, envType) {
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/${serviceName}
                 echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin
-                docker compose -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()} down --volumes --remove-orphans --timeout 120 || true
+                docker compose -p ${APP_NAME.toLowerCase()}_${serviceName}_${envType.toLowerCase()} down --volumes --remove-orphans --timeout 120 || true
                 docker pull ${imageTag}
-                docker compose -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()} up -d
+                docker compose -p ${APP_NAME.toLowerCase()}_${serviceName}_${envType.toLowerCase()} up -d
             "
         """
     }
