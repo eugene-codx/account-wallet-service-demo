@@ -117,14 +117,18 @@ def isFolderChanged(folder) {
 
 def deployInfra(envType) {
     def remoteDir = (envType == "DEV") ? env.REMOTE_DIR_DEV : env.REMOTE_DIR_PROD
+    def infraCredId = (envType == "DEV") ? "ENV_DEV_infra_Account_wallet_service" : "ENV_PROD_infra_Account_wallet_service"
     echo ">>> Checking Shared Infrastructure (${envType})..."
 
     withCredentials([
+        file(credentialsId: infraCredId, variable: 'INFRA_ENV_FILE'),
         sshUserPrivateKey(credentialsId: 'PSUSERDEPLOY_SSH', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
     ]) {
         sh """
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "sudo mkdir -p ${remoteDir}/infra"
-            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml infra/.env "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
+            # Копируем секретный .env и файл компоуза
+            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$INFRA_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/.env"
+            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/infra
                 docker compose up -d
