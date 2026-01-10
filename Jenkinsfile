@@ -136,7 +136,7 @@ def deployInfra(envType) {
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/infra
-                docker compose up -d -p ${APP_NAME}_infra_${envType.toLowerCase()}
+                docker compose -p ${APP_NAME}_infra_${envType.toLowerCase()} up -d
             "
         """
     }
@@ -171,9 +171,9 @@ def deployService(serviceName, envType) {
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/${serviceName}
                 echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin
-                docker compose down -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()} --volumes --remove-orphans --timeout 120 || true
+                docker compose -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()} down --volumes --remove-orphans --timeout 120 || true
                 docker pull ${imageTag}
-                docker compose up -d -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()}
+                docker compose -p ${APP_NAME}_${serviceName}_${envType.toLowerCase()} up -d
             "
         """
     }
