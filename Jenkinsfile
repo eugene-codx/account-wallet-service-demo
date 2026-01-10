@@ -64,7 +64,7 @@ pipeline {
                 script {
                     for (env_param in ['REPO_URL', 'SERVER_IP', 'REMOTE_DIR_DEV', 'REMOTE_DIR_PROD']) {
                         def value = env."${env_param}"
-                        def displayValue = (value.length() > 10) ? value[0..1] + "..." + value[1..-1] : value
+                        def displayValue = (value.length() > 1) ? " " + value[0..-1] + " " : value
                         echo "DEBUG ${env_param}: ${displayValue}"
                     }
 
