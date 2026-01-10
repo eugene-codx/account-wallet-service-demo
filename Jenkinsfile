@@ -13,8 +13,8 @@ pipeline {
         // Привязываем секреты к переменным окружения
         REPO_URL = credentials('REPO_URL_ACCOUNT_WALLET_SERVICE') 
         SERVER_IP = credentials('SERVER_IP')
-        REMOTE_DIR_DEV = credentials('REMOTE_DIR_DEV_' + APP_NAME)
-        REMOTE_DIR_PROD = credentials('REMOTE_DIR_PROD_' + APP_NAME)
+        REMOTE_DIR_DEV = credentials("REMOTE_DIR_DEV_${APP_NAME}")
+        REMOTE_DIR_PROD = credentials("REMOTE_DIR_PROD_${APP_NAME}")
         DOCKER_REGISTRY = "ghcr.io"
         DOCKER_ORG = "eugene-codx"
         ALL_SERVICES = "auth_service wallet_service"
