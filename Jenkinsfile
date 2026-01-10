@@ -62,6 +62,7 @@ pipeline {
         stage('Debug Info') {
             steps {
                 script {
+                    sh "echo \$REMOTE_DIR_DEV | base64"
                     echo "--- Публичные параметры ---"
                     echo "DOCKER_REGISTRY: ${env.DOCKER_REGISTRY}"
                     echo "DOCKER_ORG: ${env.DOCKER_ORG}"
@@ -82,7 +83,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Build & Deploy DEV') {
             when { expression { env.TARGET_SERVICES != "" } }
             steps {
