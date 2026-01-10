@@ -143,7 +143,7 @@ def deployInfra(envType) {
 
 def deployService(serviceName, envType) {
     def remoteDir = (envType == "DEV") ? env.REMOTE_DIR_DEV : env.REMOTE_DIR_PROD
-    def envCredId = (envType == "DEV") ? "ENV_DEV_${serviceName}" : "ENV_PROD_${serviceName}"
+    def envCredId = (envType == "DEV") ? "ENV_DEV_${serviceName}_Account_wallet_service" : "ENV_PROD_${serviceName}_Account_wallet_service"
     def imageTag = "${env.DOCKER_REGISTRY}/${env.DOCKER_ORG}/${serviceName}:latest"
 
     echo ">>> Deploying Service: ${serviceName} to ${envType}"
