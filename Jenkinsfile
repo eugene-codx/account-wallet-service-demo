@@ -128,6 +128,7 @@ def deployInfra(envType) {
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 sudo mkdir -p ${remoteDir}/infra && \
                 sudo chown -R \${SSH_USER}:\${SSH_USER} ${remoteDir}/infra
+                rm -rf ${remoteDir}/infra/.env
                 "
             # Копируем секретный .env и файл компоуза
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$INFRA_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/.env"
@@ -162,6 +163,7 @@ def deployService(serviceName, envType) {
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 sudo mkdir -p ${remoteDir}/${serviceName} && \
                 sudo chown -R \${SSH_USER}:\${SSH_USER} ${remoteDir}/${serviceName}
+                rm -rf ${remoteDir}/${serviceName}/.env
             "
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SECRET_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/.env"
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" ./${serviceName}/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/"
