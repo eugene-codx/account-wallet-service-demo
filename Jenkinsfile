@@ -10,7 +10,7 @@ pipeline {
 
     environment {
         // Привязываем секреты к переменным окружения
-        REPO_URL = credentials('REPO_URL') 
+        REPO_URL = credentials('REPO_URL_ACCOUNT_WALLET_SERVICE') 
         SERVER_IP = credentials('SERVER_IP')
         REMOTE_DIR_DEV = credentials('REMOTE_DIR_DEV')
         REMOTE_DIR_PROD = credentials('REMOTE_DIR_PROD')
@@ -59,6 +59,30 @@ pipeline {
             }
         }
 
+        stage('Debug Info') {
+            steps {
+                script {
+                    echo "--- Публичные параметры ---"
+                    echo "DOCKER_REGISTRY: ${env.DOCKER_REGISTRY}"
+                    echo "DOCKER_ORG: ${env.DOCKER_ORG}"
+                    echo "ALL_SERVICES: ${env.ALL_SERVICES}"
+                    echo "TARGET_SERVICES: ${env.TARGET_SERVICES}" // Если уже определена в Initialize
+                    
+                    echo "--- Секретные параметры (будут замаскированы) ---"
+                    echo "SERVER_IP: ${env.SERVER_IP}"
+                    echo "REMOTE_DIR_DEV: ${env.REMOTE_DIR_DEV}"
+                    echo "REMOTE_DIR_PROD: ${env.REMOTE_DIR_PROD}"
+                    
+                    // Проверка: загружен ли секрет (выведет длину строки вместо значения)
+                    if (env.REPO_URL) {
+                        echo "REPO_URL загружен, длина строки: ${env.REPO_URL.length()}"
+                    } else {
+                        echo "ОШИБКА: REPO_URL не загружен!"
+                    }
+                }
+            }
+        }
+        
         stage('Build & Deploy DEV') {
             when { expression { env.TARGET_SERVICES != "" } }
             steps {
@@ -79,7 +103,7 @@ pipeline {
             }
             steps {
                 echo "Запуск внешних QA тестов..."
-                build job: 'Habit_AT', wait: true, propagate: true
+                build job: 'Account Wallet AT', wait: true, propagate: true
             }
         }
 
@@ -112,7 +136,6 @@ def isFolderChanged(folder) {
 def deployService(serviceName, envType) {
     def remoteDir = (envType == "DEV") ? env.REMOTE_DIR_DEV : env.REMOTE_DIR_PROD
     // Динамически выбираем ID секрета для .env файла. 
-    // Если у вас один общий файл, замените на 'ENV_DEV_habit'
     def envCredId = (envType == "DEV") ? "ENV_DEV_${serviceName}" : "ENV_PROD_${serviceName}"
     def imageTag = "${env.DOCKER_REGISTRY}/${env.DOCKER_ORG}/${serviceName}:latest"
 
