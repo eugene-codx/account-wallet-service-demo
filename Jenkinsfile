@@ -21,7 +21,7 @@ pipeline {
                 script {
                     // Исправлено: используем params.BRANCH_NAME напрямую
                     checkout scm: ([$class: 'GitSCM', branches: [[name: "${params.BRANCH_NAME}"]], 
-                        userRemoteConfigs: [[url: credentials('REPO_URL'), credentialsId: 'GITHUB_SSH_KEY']]]) [cite: 3, 5]
+                        userRemoteConfigs: [[url: credentials('REPO_URL'), credentialsId: 'GITHUB_SSH_KEY']]])
 
                     def selected = []
                     if (params.SERVICE_TO_RUN == 'AUTO') {
@@ -51,7 +51,7 @@ pipeline {
             when { expression { params.RUN_QA_TESTS == true } }
             steps {
                 echo "Triggering external QA Job..."
-                build job: 'Habit_AT', wait: true, propagate: true [cite: 27, 28]
+                build job: 'Habit_AT', wait: true, propagate: true
             }
         }
 
@@ -80,8 +80,8 @@ def isFolderChanged(folder) {
 }
 
 def deployService(serviceName, envType) {
-    def remoteDir = (envType == "DEV") ? credentials('REMOTE_DIR_DEV') : credentials('REMOTE_DIR_PROD') [cite: 1, 31]
-    def envCredId = (envType == "DEV") ? "ENV_DEV_habit" : "ENV_PROD_habit" // Здесь можно вернуть жесткую привязку, если файл один [cite: 9, 31]
+    def remoteDir = (envType == "DEV") ? credentials('REMOTE_DIR_DEV') : credentials('REMOTE_DIR_PROD')
+    def envCredId = (envType == "DEV") ? "ENV_DEV_habit" : "ENV_PROD_habit" // Здесь можно вернуть жесткую привязку, если файл один
     def imageTag = "${env.DOCKER_REGISTRY}/${env.DOCKER_ORG}/${serviceName}:latest"
 
     echo ">>> Starting ${envType} pipeline for: ${serviceName}"
@@ -90,17 +90,17 @@ def deployService(serviceName, envType) {
         file(credentialsId: envCredId, variable: 'SECRET_ENV_FILE'),
         sshUserPrivateKey(credentialsId: 'PSUSERDEPLOY_SSH', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
         usernamePassword(credentialsId: 'GITHUB_TOKEN_CREDENTIALS', usernameVariable: 'G_USER', passwordVariable: 'G_TOKEN')
-    ]) { [cite: 9, 10, 11, 12]
+    ]) {
 
         // Build
         dir(serviceName) { // Переходим в папку микросервиса для сборки
-            sh "docker build -t ${imageTag} ." [cite: 6]
+            sh "docker build -t ${imageTag} ."
         }
         
-        sh "echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin" [cite: 24]
-        sh "docker push ${imageTag}" [cite: 7]
+        sh "echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin"
+        sh "docker push ${imageTag}"
 
-        // SSH Deploy (Ваша оригинальная логика, завернутая в DRY функцию) [cite: 13-25]
+        // SSH Deploy (Ваша оригинальная логика, завернутая в DRY функцию)
         sh """
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "sudo mkdir -p ${remoteDir}/${serviceName}"
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SECRET_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/.env"
