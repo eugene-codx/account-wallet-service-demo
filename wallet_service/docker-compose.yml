@@ -1,7 +1,6 @@
 services:
   api:
-    build: .
-    container_name: wallet_api
+    image: ghcr.io/eugene-codx/wallet_service:latest
     restart: always
     env_file: .env
     networks:
