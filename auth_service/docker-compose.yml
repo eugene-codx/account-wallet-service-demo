@@ -5,7 +5,7 @@ services:
     restart: always
     env_file: .env
     networks:
-      - microservices_net
+      - microservices_net_acc_wlt_srv
     environment:
       POSTGRES_HOST: postgres
     command: >
@@ -24,5 +24,5 @@ services:
       - "${UVICORN_PORT}:${UVICORN_PORT}"
 
 networks:
-  microservices_net:
+  microservices_net_acc_wlt_srv:
     external: true

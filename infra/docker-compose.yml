@@ -12,11 +12,11 @@ services:
     volumes:
       - shared_pg_data:/var/lib/postgresql/data
     networks:
-      - microservices_net
+      - microservices_net_acc_wlt_srv
 
 volumes:
   shared_pg_data:
 
 networks:
-  microservices_net:
-    name: microservices_net
+  microservices_net_acc_wlt_srv:
+    name: microservices_net_acc_wlt_srv
