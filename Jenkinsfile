@@ -12,8 +12,8 @@ pipeline {
         // Привязываем секреты к переменным окружения
         REPO_URL = credentials('REPO_URL_ACCOUNT_WALLET_SERVICE') 
         SERVER_IP = credentials('SERVER_IP')
-        REMOTE_DIR_DEV = credentials('REMOTE_DIR_DEV')
-        REMOTE_DIR_PROD = credentials('REMOTE_DIR_PROD')
+        REMOTE_DIR_DEV = credentials('REMOTE_DIR_DEV_Account_wallet_service')
+        REMOTE_DIR_PROD = credentials('REMOTE_DIR_PROD_Account_wallet_service')
         DOCKER_REGISTRY = "ghcr.io"
         DOCKER_ORG = "eugene-codx"
         ALL_SERVICES = "auth_service wallet_service"
@@ -55,27 +55,6 @@ pipeline {
                     } else {
                         echo "Целевые сервисы для работы: ${env.TARGET_SERVICES}"
                     }
-                }
-            }
-        }
-
-        stage('Debug Info') {
-            steps {
-                script {
-                    for (env_param in ['REPO_URL', 'SERVER_IP', 'REMOTE_DIR_DEV', 'REMOTE_DIR_PROD']) {
-                        def value = env."${env_param}"
-                        def displayValue = (value.length() > 1) ? value[0..1] + "..." + value[2..-1]: value
-                        echo "DEBUG ${env_param}: ${displayValue}"
-                    }
-
-                    // def secret = env.REMOTE_DIR_DEV
-                    // if (secret) {
-                    //     // Превращаем "secret" в "s-e-c-r-e-t"
-                    //     def peek = secret.collect { it }.join('-')
-                    //     echo "DEBUG REMOTE_DIR_DEV (через дефис): ${peek}"
-                    // } else {
-                    //     echo "REMOTE_DIR_DEV пустой или не загружен!"
-                    // }
                 }
             }
         }
