@@ -125,7 +125,10 @@ def deployInfra(envType) {
         sshUserPrivateKey(credentialsId: 'PSUSERDEPLOY_SSH', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
     ]) {
         sh """
-            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "sudo mkdir -p ${remoteDir}/infra"
+            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
+                sudo mkdir -p ${remoteDir}/infra && \
+                sudo chown -R \${SSH_USER}:\${SSH_USER} ${remoteDir}/infra
+                "
             # Копируем секретный .env и файл компоуза
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$INFRA_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/.env"
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
@@ -156,7 +159,10 @@ def deployService(serviceName, envType) {
         sh "docker push ${imageTag}"
 
         sh """
-            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "sudo mkdir -p ${remoteDir}/${serviceName}"
+            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
+                sudo mkdir -p ${remoteDir}/${serviceName} && \
+                sudo chown -R \${SSH_USER}:\${SSH_USER} ${remoteDir}/${serviceName}
+            "
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SECRET_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/.env"
             scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" ./${serviceName}/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/"
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
