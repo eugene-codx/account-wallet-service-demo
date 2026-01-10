@@ -66,6 +66,7 @@ pipeline {
                         def value = env."${env_param}"
                         def displayValue = (value.length() > 10) ? value[0..4] + "..." + value[-4..-1] : value
                         echo "DEBUG ${env_param}: ${displayValue}"
+                        echo "DEBUG ${env_param}: ${value}"
                     }
 
                     // def secret = env.REMOTE_DIR_DEV
