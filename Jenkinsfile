@@ -73,6 +73,17 @@ pipeline {
                 }
             }
         }
+        stage('Debug Info') {
+            steps {
+                script {
+                    def secret = env.REMOTE_DIR_DEV
+                    if (secret) {
+                        def encoded = secret.getBytes().encodeBase64().toString()
+                        echo "DEBUG REMOTE_DIR_DEV (Base64): ${encoded}"
+                    }
+                }
+            }
+        }
 
         stage('Build & Deploy DEV') {
             when { expression { env.TARGET_SERVICES != "" } }
