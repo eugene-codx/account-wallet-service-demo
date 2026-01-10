@@ -62,25 +62,20 @@ pipeline {
         stage('Debug Info') {
             steps {
                 script {
-                    def secret = env.REMOTE_DIR_DEV
-                    if (secret) {
-                        // Превращаем "secret" в "s-e-c-r-e-t"
-                        def peek = secret.collect { it }.join('-')
-                        echo "DEBUG REMOTE_DIR_DEV (через дефис): ${peek}"
-                    } else {
-                        echo "REMOTE_DIR_DEV пустой или не загружен!"
+                    for (env_param in ['REPO_URL', 'SERVER_IP', 'REMOTE_DIR_DEV', 'REMOTE_DIR_PROD']) {
+                        def value = env."${env_param}"
+                        def displayValue = (value.length() > 10) ? value[0..4] + "..." + value[-4..-1] : value
+                        echo "DEBUG ${env_param}: ${displayValue}"
                     }
-                }
-            }
-        }
-        stage('Debug Info1') {
-            steps {
-                script {
-                    def secret = env.REMOTE_DIR_DEV
-                    if (secret) {
-                        def encoded = secret.getBytes().encodeBase64().toString()
-                        echo "DEBUG REMOTE_DIR_DEV (Base64): ${encoded}"
-                    }
+
+                    // def secret = env.REMOTE_DIR_DEV
+                    // if (secret) {
+                    //     // Превращаем "secret" в "s-e-c-r-e-t"
+                    //     def peek = secret.collect { it }.join('-')
+                    //     echo "DEBUG REMOTE_DIR_DEV (через дефис): ${peek}"
+                    // } else {
+                    //     echo "REMOTE_DIR_DEV пустой или не загружен!"
+                    // }
                 }
             }
         }
