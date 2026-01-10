@@ -170,7 +170,7 @@ def deployService(serviceName, envType) {
             ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/${serviceName}
                 echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin
-                docker compose down --volumes --remove-orphans --timeout 30 || true
+                docker compose down --volumes --remove-orphans --timeout 120 || true
                 docker pull ${imageTag}
                 docker compose up -d
             "
