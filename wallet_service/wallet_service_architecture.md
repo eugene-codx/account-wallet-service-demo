@@ -1,104 +1,37 @@
-## Общая структура каталогов
-```tree
-wallet-service/
- ├── app/
- │    ├── api/
- │    │     ├── v1/
- │    │     │     ├── wallet.py
- │    ├── core/
- │    │     ├── config.py
- │    ├── models/
- │    │     ├── wallet.py
- │    ├── schemas/
- │    │     ├── wallet.py
- │    ├── services/
- │    │     ├── wallet_service.py
- │    ├── db/
- │    │     ├── database.py
- │    ├── main.py
- ├── README.md
- ├── pyproject.toml (poetry)
- └── Dockerfile
-```
+## wallet_service overview
 
-## Модель данных (wallets + transactions)
-Таблица wallets и таблица transactions.
-```text
-wallets:
-id
-user_id
-balance (decimal, 2 digits)
-created_at
+### Структура
+- `app/api/v1/wallet.py`: операции кошелька и история транзакций.
+- `app/models/account.py`: таблица `accounts`.
+- `app/models/transaction.py`: таблица `transactions`.
+- `app/schemas/schemas.py`: контракты API.
 
-transactions:
-id
-wallet_id
-amount (положительное или отрицательное)
-type ("deposit", "withdraw")
-created_at
+### Модель данных
+`accounts`:
+- `id` UUID PK
+- `user_id` UUID index
+- `balance` Numeric(18,4)
+- `currency`, `created_at`, `updated_at`
 
-Баланс в кошельке всегда = сумма всех транзакций.
-```
+`transactions`:
+- `id` UUID PK
+- `idempotency_key` unique index
+- `account_id` FK -> accounts.id
+- `amount`, `type`, `created_at`
 
-## Основные эндпоинты (v1/wallet):
-```text
-POST /wallet/create
-Создать кошелёк для текущего пользователя
+### Эндпоинты
+- `GET /wallet/accounts`
+- `POST /wallet/accounts`
+- `POST /wallet/deposit`
+- `POST /wallet/withdraw`
+- `POST /wallet/transfer`
+- `GET /wallet/accounts/{account_id}/transactions?limit=20&offset=0`
 
-Вход: пусто
-Выход: wallet_id
-```
-```text
-POST /wallet/deposit
-Пополнение
+### Безопасность и консистентность
+- Все эндпоинты требуют Bearer JWT.
+- `sub` из токена используется как `user_id`.
+- Денежные операции используют row lock (`FOR UPDATE`).
+- Идемпотентность обеспечивается уникальным индексом + обработкой `IntegrityError`.
 
-Вход:
-{
-  "wallet_id": "...",
-  "amount": 100.0
-}
-Выход: новое значение баланса
-```
-```text
-POST /wallet/withdraw
-Списание
-
-Логика: проверка достаточности средств
-Выход: новое значение баланса
-```
-```text
-GET /wallet/{wallet_id}/balance
-Получить текущий баланс
-```
-```text
-GET /wallet/{wallet_id}/transactions
-История операций (paging по желанию)
-```
-
-## Авторизация
-- Все эндпоинты требуют JWT access token.
-- Токен проверяется через тот же механизм FastAPI middleware, который используется в вашем Awakeia auth-сервисе.
-- user_id извлекается из токена и передается в бизнес-логику.
-
-## Бизнес-логика (service layer)
-### Слой services/wallet_service.py:
-- create_wallet(user_id)
-- deposit(wallet_id, amount)
-- withdraw(wallet_id, amount)
-- get_balance(wallet_id)
-- get_transactions(wallet_id)
----
-### Особенности:
-- Запрет создания двух кошельков на одного пользователя, либо разрешение, но осознанное.
-- Каждая операция — транзакция в БД (+ оптимистичная блокировка при списании).
-
-## Автоматические тесты
-- автотесты на pytest находятся в другом проекте (отдельный framework для интеграционных тестов с auth-сервисом).
-
-## Описание для README
-### Структура:
-- описание сервиса
-- как запустить (docker-compose или вручную)
-- пример запросов
-- пример тестов
-- архитектура
+### Тестирование
+- Основные автотесты находятся во внешнем QA-проекте.

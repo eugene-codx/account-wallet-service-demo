@@ -33,3 +33,8 @@ RUN uv sync --frozen --no-dev
 
 # Добавляем виртуальное окружение uv в PATH, чтобы команды (alembic, uvicorn) были доступны напрямую
 ENV PATH="/app/.venv/bin:$PATH"
+
+RUN useradd --create-home --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser

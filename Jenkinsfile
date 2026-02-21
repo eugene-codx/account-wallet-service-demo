@@ -126,15 +126,17 @@ def deployInfra(envType) {
         sshUserPrivateKey(credentialsId: 'PSUSERDEPLOY_SSH', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
     ]) {
         sh """
-            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
+            KNOWN_HOSTS_FILE="\$WORKSPACE/.known_hosts_account_wallet_service"
+            ssh-keyscan -H "\${SERVER_IP}" > "\$KNOWN_HOSTS_FILE"
+            ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 sudo mkdir -p ${remoteDir}/infra && \
                 sudo chown -R \${SSH_USER}:\${SSH_USER} ${remoteDir}/infra
                 rm -rf ${remoteDir}/infra/.env
                 "
             # Копируем секретный .env и файл компоуза
-            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$INFRA_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/.env"
-            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" infra/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
-            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
+            scp -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" "\$INFRA_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/.env"
+            scp -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" infra/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/infra/"
+            ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/infra
                 docker compose -p ${APP_NAME.toLowerCase()}_infra_${envType.toLowerCase()} up -d
             "
@@ -161,14 +163,16 @@ def deployService(serviceName, envType) {
         sh "docker push ${imageTag}"
 
         sh """
-            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
+            KNOWN_HOSTS_FILE="\$WORKSPACE/.known_hosts_account_wallet_service"
+            ssh-keyscan -H "\${SERVER_IP}" > "\$KNOWN_HOSTS_FILE"
+            ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 sudo mkdir -p ${remoteDir}/${serviceName} && \
                 sudo chown -R \${SSH_USER}:\${SSH_USER} ${remoteDir}/${serviceName}
                 rm -rf ${remoteDir}/${serviceName}/.env
             "
-            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SECRET_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/.env"
-            scp -o StrictHostKeyChecking=no -i "\$SSH_KEY" ./${serviceName}/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/"
-            ssh -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
+            scp -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" "\$SECRET_ENV_FILE" "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/.env"
+            scp -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" ./${serviceName}/docker-compose.yml "\${SSH_USER}@\${SERVER_IP}:${remoteDir}/${serviceName}/"
+            ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="\$KNOWN_HOSTS_FILE" -i "\$SSH_KEY" "\${SSH_USER}@\${SERVER_IP}" "
                 cd ${remoteDir}/${serviceName}
                 echo \$G_TOKEN | docker login ${env.DOCKER_REGISTRY} -u \$G_USER --password-stdin
                 docker compose -p ${APP_NAME.toLowerCase()}_${serviceName}_${envType.toLowerCase()} down --volumes --remove-orphans --timeout 30 || true

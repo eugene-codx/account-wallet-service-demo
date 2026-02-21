@@ -8,13 +8,17 @@ class TransferRequest(BaseModel):
     from_account_id: UUID4
     to_account_id: UUID4
     amount: Decimal = Field(gt=0)
-    idempotency_key: str
+    idempotency_key: str = Field(
+        min_length=8, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{7,127}$"
+    )
 
 
 class DepositRequest(BaseModel):
     account_id: UUID4
     amount: Decimal = Field(gt=0)
-    idempotency_key: str
+    idempotency_key: str = Field(
+        min_length=8, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{7,127}$"
+    )
 
 
 class AccountResponse(BaseModel):
@@ -30,7 +34,9 @@ class AccountResponse(BaseModel):
 class WithdrawRequest(BaseModel):
     account_id: UUID4
     amount: Decimal = Field(gt=0)
-    idempotency_key: str
+    idempotency_key: str = Field(
+        min_length=8, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{7,127}$"
+    )
 
 
 class TransactionResponse(BaseModel):

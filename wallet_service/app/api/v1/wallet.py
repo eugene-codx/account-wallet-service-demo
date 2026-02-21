@@ -12,11 +12,12 @@ from app.schemas.schemas import (
     TransferRequest,
     WithdrawRequest,
 )
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 from pydantic import UUID4
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/wallet", tags=["wallet"])
@@ -67,13 +68,6 @@ async def deposit_funds(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    # Idempotency check
-    check_tx = await db.execute(
-        select(Transaction).where(Transaction.idempotency_key == req.idempotency_key)
-    )
-    if check_tx.scalars().first():
-        raise HTTPException(status_code=409, detail="Transaction already processed")
-
     # Use FOR UPDATE to lock the account row
     res = await db.execute(
         select(Account).where(Account.id == req.account_id).with_for_update()
@@ -93,7 +87,11 @@ async def deposit_funds(
         )
     )
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Transaction already processed")
     await db.refresh(account)
     return {"status": "success", "new_balance": account.balance}
 
@@ -104,12 +102,6 @@ async def transfer_funds(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    check_tx = await db.execute(
-        select(Transaction).where(Transaction.idempotency_key == req.idempotency_key)
-    )
-    if check_tx.scalars().first():
-        raise HTTPException(status_code=409, detail="Transaction already processed")
-
     # Block both accounts in a consistent order to prevent deadlocks
     ids = sorted([req.from_account_id, req.to_account_id])
     res = await db.execute(select(Account).where(Account.id.in_(ids)).with_for_update())
@@ -145,11 +137,15 @@ async def transfer_funds(
             account_id=receiver.id,
             amount=req.amount,
             type="TRANSFER_IN",
-            idempotency_key=f"in_{req.idempotency_key}",
+            idempotency_key=f"__internal__:tx:{req.idempotency_key}:in",
         )
     )
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Transaction already processed")
     return {"status": "success", "new_balance": sender.balance}
 
 
@@ -162,14 +158,7 @@ async def withdraw_funds(
     """
     Withdraw funds from a user's account with idempotency check and row locking.
     """
-    # 1. Check for idempotency
-    check_tx = await db.execute(
-        select(Transaction).where(Transaction.idempotency_key == req.idempotency_key)
-    )
-    if check_tx.scalars().first():
-        raise HTTPException(status_code=409, detail="Transaction already processed")
-
-    # 2. Block the account row and withdraw funds
+    # 1. Block the account row and withdraw funds
     res = await db.execute(
         select(Account).where(Account.id == req.account_id).with_for_update()
     )
@@ -191,7 +180,11 @@ async def withdraw_funds(
         )
     )
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Transaction already processed")
     return {"status": "success", "new_balance": account.balance}
 
 
@@ -200,8 +193,8 @@ async def withdraw_funds(
 )
 async def get_transaction_history(
     account_id: UUID4,
-    limit: int = 20,
-    offset: int = 0,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=10000),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):

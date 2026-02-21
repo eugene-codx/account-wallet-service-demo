@@ -1,29 +1,32 @@
 # Account Wallet Service (Demo)
 
 Демо-проект: виртуальные кошельки + авторизация.  
-Покрыт тестами на `pytest`, идемпотентность, async-обработка.
+Идемпотентность и async-обработка реализованы в API; автотесты выполняются во внешнем QA-проекте.
 
 ## Запуск (самый простой способ)
 
 ```bash
 git clone git@github.com:eugene-codx/account-wallet-service-demo.git
 cd account-wallet-service-demo
-docker-compose up --build
+docker compose -f infra/docker-compose.yml up -d
+# далее поднять сервисы отдельно:
+docker compose -f auth_service/docker-compose.yml up --build -d
+docker compose -f wallet_service/docker-compose.yml up --build -d
 ```
 
 ## Сервисы:
 ### Auth: http://localhost:8001/docs
-### Wallet: http://localhost:8000/docs
+### Wallet: http://localhost:8002/docs
 
 ## Локальная разработка:
 ```bash
-# В корне проекта
-pip install poetry
+# Auth service
+cd auth_service
+uv sync --frozen
+uv run uvicorn app.main:app --reload --port 8001
 
-# Установка зависимостей и активация виртуального окружения (в корне проекта)
-poetry install --all-extras
-
-# Запуск
-uvicorn auth_service.main:app --reload --port 8001
-uvicorn wallet_service.main:app --reload --port 8000
+# Wallet service
+cd ../wallet_service
+uv sync --frozen
+uv run uvicorn app.main:app --reload --port 8002
 ```
