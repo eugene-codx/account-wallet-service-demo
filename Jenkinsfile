@@ -117,7 +117,6 @@ def isFolderChanged(folder) {
 }
 
 def deployInfra(envType) {
-    def remoteDir = (envType == "DEV") ? env.REMOTE_DIR_DEV : env.REMOTE_DIR_PROD
     def infraCredId = (envType == "DEV") ? "ENV_DEV_infra_Account_wallet_service" : "ENV_PROD_infra_Account_wallet_service"
     def infraProject = "${APP_NAME.toLowerCase()}_infra_${envType.toLowerCase()}"
     echo ">>> Checking Shared Infrastructure (${envType})..."
@@ -126,19 +125,23 @@ def deployInfra(envType) {
         file(credentialsId: infraCredId, variable: 'INFRA_ENV_FILE'),
         sshUserPrivateKey(credentialsId: 'PSUSERDEPLOY_SSH', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
     ]) {
-        withEnv(["REMOTE_DIR=${remoteDir}", "INFRA_PROJECT=${infraProject}"]) {
+        withEnv(["ENV_TYPE=${envType}", "INFRA_PROJECT=${infraProject}"]) {
             sh '''
                 KNOWN_HOSTS_FILE="$WORKSPACE/.known_hosts_account_wallet_service"
-                SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS_FILE -i $SSH_KEY"
-                ssh $SSH_OPTS "${SSH_USER}@${SERVER_IP}" "
+                if [ "$ENV_TYPE" = "DEV" ]; then
+                    REMOTE_DIR="$REMOTE_DIR_DEV"
+                else
+                    REMOTE_DIR="$REMOTE_DIR_PROD"
+                fi
+                ssh -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" "${SSH_USER}@${SERVER_IP}" "
                     sudo mkdir -p ${REMOTE_DIR}/infra && \
                     sudo chown -R ${SSH_USER}:${SSH_USER} ${REMOTE_DIR}/infra
                     rm -rf ${REMOTE_DIR}/infra/.env
                     "
                 # Копируем секретный .env и файл компоуза
-                scp $SSH_OPTS "$INFRA_ENV_FILE" "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/infra/.env"
-                scp $SSH_OPTS infra/docker-compose.yml "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/infra/"
-                ssh $SSH_OPTS "${SSH_USER}@${SERVER_IP}" "
+                scp -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" "$INFRA_ENV_FILE" "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/infra/.env"
+                scp -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" infra/docker-compose.yml "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/infra/"
+                ssh -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" "${SSH_USER}@${SERVER_IP}" "
                     cd ${REMOTE_DIR}/infra
                     docker compose -p ${INFRA_PROJECT} up -d
                 "
@@ -148,7 +151,6 @@ def deployInfra(envType) {
 }
 
 def deployService(serviceName, envType) {
-    def remoteDir = (envType == "DEV") ? env.REMOTE_DIR_DEV : env.REMOTE_DIR_PROD
     def envCredId = (envType == "DEV") ? "ENV_DEV_${serviceName}_Account_wallet_service" : "ENV_PROD_${serviceName}_Account_wallet_service"
     def imageTag = "${env.DOCKER_REGISTRY}/${env.DOCKER_ORG}/${serviceName}:latest"
     def serviceProject = "${APP_NAME.toLowerCase()}_${serviceName}_${envType.toLowerCase()}"
@@ -167,7 +169,7 @@ def deployService(serviceName, envType) {
         sh "docker push ${imageTag}"
 
         withEnv([
-            "REMOTE_DIR=${remoteDir}",
+            "ENV_TYPE=${envType}",
             "SERVICE_NAME=${serviceName}",
             "IMAGE_TAG=${imageTag}",
             "SERVICE_PROJECT=${serviceProject}",
@@ -175,15 +177,19 @@ def deployService(serviceName, envType) {
         ]) {
             sh '''
                 KNOWN_HOSTS_FILE="$WORKSPACE/.known_hosts_account_wallet_service"
-                SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS_FILE -i $SSH_KEY"
-                ssh $SSH_OPTS "${SSH_USER}@${SERVER_IP}" "
+                if [ "$ENV_TYPE" = "DEV" ]; then
+                    REMOTE_DIR="$REMOTE_DIR_DEV"
+                else
+                    REMOTE_DIR="$REMOTE_DIR_PROD"
+                fi
+                ssh -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" "${SSH_USER}@${SERVER_IP}" "
                     sudo mkdir -p ${REMOTE_DIR}/${SERVICE_NAME} && \
                     sudo chown -R ${SSH_USER}:${SSH_USER} ${REMOTE_DIR}/${SERVICE_NAME}
                     rm -rf ${REMOTE_DIR}/${SERVICE_NAME}/.env
                 "
-                scp $SSH_OPTS "$SECRET_ENV_FILE" "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/${SERVICE_NAME}/.env"
-                scp $SSH_OPTS "./${SERVICE_NAME}/docker-compose.yml" "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/${SERVICE_NAME}/"
-                ssh $SSH_OPTS "${SSH_USER}@${SERVER_IP}" "
+                scp -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" "$SECRET_ENV_FILE" "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/${SERVICE_NAME}/.env"
+                scp -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" "./${SERVICE_NAME}/docker-compose.yml" "${SSH_USER}@${SERVER_IP}:${REMOTE_DIR}/${SERVICE_NAME}/"
+                ssh -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" -i "$SSH_KEY" "${SSH_USER}@${SERVER_IP}" "
                     cd ${REMOTE_DIR}/${SERVICE_NAME}
                     echo $G_TOKEN | docker login ${DOCKER_REGISTRY_VALUE} -u $G_USER --password-stdin
                     docker compose -p ${SERVICE_PROJECT} down --volumes --remove-orphans --timeout 30 || true
