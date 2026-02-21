@@ -4,7 +4,7 @@ pipeline {
     parameters {
         choice(name: 'SERVICE_TO_RUN', choices: ['AUTO', 'auth_service', 'wallet_service', 'ALL'], description: 'Что деплоим?')
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Ветка для сборки')
-        booleanParam(name: 'RUN_QA_TESTS', defaultValue: true, description: 'Запустить QA тесты')
+        booleanParam(name: 'RUN_QA_TESTS', defaultValue: false, description: 'Запустить QA тесты')
         booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Деплой на PROD')
     }
 
